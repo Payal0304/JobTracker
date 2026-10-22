@@ -43,14 +43,17 @@ function validateJob({ company, role, status }) {
   return null;
 }
 
-
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 5432),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+const pool = process.env.DATABASE_URL
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+    })
+  : new Pool({
+      host: process.env.DB_HOST,
+      port: Number(process.env.DB_PORT || 5432),
+      database: process.env.DB_NAME,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+    });
 
 // Check API and database connection
 app.get("/", async (req, res) => {
@@ -61,7 +64,7 @@ app.get("/", async (req, res) => {
       database: "Connected",
     });
   } catch (error) {
-    console.error("Database connection error:", error.message);
+    console.error("Database connection error details:", error);
     res.status(500).json({ message: "Database connection failed." });
   }
 });
@@ -243,6 +246,14 @@ app.delete("/api/jobs/:id", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`JobTrack API running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`JobTrack API listening on port ${PORT}`);
+
+  pool.query("SELECT 1")
+    .then(() => {
+      console.log("Database connection check passed.");
+    })
+    .catch((error) => {
+      console.error("Database connection check failed:", error);
+    });
 });
